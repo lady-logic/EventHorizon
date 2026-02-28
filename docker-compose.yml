@@ -1,0 +1,15 @@
+﻿services:
+  postgres:
+    image: postgres:16
+    container_name: eventhorizon-db
+    environment:
+      POSTGRES_USER: eventhorizon
+      POSTGRES_PASSWORD: stardate2026
+      POSTGRES_DB: eventhorizon
+    ports:
+      - "5432:5432"
+    volumes:
+      - eventhorizon-data:/var/lib/postgresql/data
+
+volumes:
+  eventhorizon-data:
