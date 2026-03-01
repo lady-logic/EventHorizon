@@ -1,9 +1,9 @@
-﻿using EventHorizon.Api.Domain.Events;
+﻿using EventHorizon.Domain.Events;
 using EventHorizon.Infrastructure;
 using Marten;
 using System.Globalization;
 
-namespace EventHorizon.BackgroundServices
+namespace EventHorizon.Api.BackgroundServices
 {
     public class NeoWsPollingService : BackgroundService
     {

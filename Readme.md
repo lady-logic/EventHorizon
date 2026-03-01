@@ -15,6 +15,9 @@ Dieses Projekt zeigt in der Praxis:
 - **Event Sourcing** – Zustand wird nicht überschrieben, sondern als Abfolge von Events gespeichert
 - **Marten** als Event Store auf Basis von PostgreSQL
 - **Aggregates** – wie Domänenobjekte aus Events rekonstruiert werden
+- **Read Model Projektionen** – automatisch berechnete Lesemodelle aus Events
+- **Clean Architecture** – saubere Schichtentrennung mit Abhängigkeitsregel
+- **CQRS mit MediatR** – Commands und Queries vollständig entkoppelt
 - **Background Services** in ASP.NET Core
 - **Minimal API** mit Scalar als modernes Swagger UI
 - **Externe API-Integration** mit dem NASA NeoWs Endpoint
@@ -28,18 +31,37 @@ graph TB
     NASA[🛸 NASA NeoWs API] -->|HTTP Poll beim Start| PS[NeoWsPollingService\nBackgroundService]
     PS -->|NearEarthObjectDetected\nApproachDataUpdated| MS[(Marten\nEvent Store)]
     MS -->|PostgreSQL JSONB| DB[(🐘 PostgreSQL\nin Docker)]
-    API[Minimal API\nASP.NET Core] -->|IQuerySession| MS
+    API[Minimal API\nASP.NET Core] -->|IMediator| MED[MediatR]
+    MED -->|Query| H[Handler]
+    H -->|IAsteroidRepository| MS
     UI[🔭 Scalar UI\nlocalhost:PORT/scalar] -->|HTTP GET| API
 
     subgraph Domain
         AGG[NearEarthObject\nAggregate]
         E1[NearEarthObjectDetected]
         E2[ApproachDataUpdated]
+        PROJ[AsteroidSummaryProjection]
+        RM[AsteroidSummary\nRead Model]
     end
 
     MS --> AGG
-    E1 --> AGG
-    E2 --> AGG
+    MS --> PROJ
+    PROJ --> RM
+```
+
+```mermaid
+graph LR
+    API[EventHorizon.Api] --> APP[EventHorizon.Application]
+    API --> INF[EventHorizon.Infrastructure]
+    API --> DOM[EventHorizon.Domain]
+    APP --> DOM
+    INF --> APP
+    INF --> DOM
+    
+    style DOM fill:#2d6a4f,color:#fff
+    style APP fill:#1d3557,color:#fff
+    style INF fill:#457b9d,color:#fff
+    style API fill:#e63946,color:#fff
 ```
 
 ---
@@ -98,7 +120,7 @@ Now listening on: http://localhost:5152
 
 Öffne dann: **http://localhost:5152/scalar**
 
-Beim Start pollt die App automatisch die NASA NeoWs API und speichert alle Asteroiden der nächsten 7 Tage als Events.
+Beim Start pollt die App automatisch die NASA NeoWs API und speichert alle Asteroiden der nächsten 7 Tage als Events. Das Datenbankschema wird automatisch angelegt.
 
 ---
 
@@ -107,7 +129,9 @@ Beim Start pollt die App automatisch die NASA NeoWs API und speichert alle Aster
 | Method | Endpoint | Beschreibung |
 |--------|----------|--------------|
 | GET | `/` | Health Check |
-| GET | `/asteroids` | Alle gespeicherten Events |
+| GET | `/asteroids` | Alle rohen Events im Event Store |
+| GET | `/asteroids/summaries` | Read Model – alle bekannten Asteroiden |
+| GET | `/asteroids/hazardous` | Read Model – nur potenziell gefährliche Asteroiden |
 
 ---
 
@@ -116,18 +140,35 @@ Beim Start pollt die App automatisch die NASA NeoWs API und speichert alle Aster
 ```
 EventHorizon/
 ├── src/
-│   └── EventHorizon.Api/
-│       ├── Domain/
-│       │   ├── Events/
-│       │   │   └── NeoEvents.cs          ← NearEarthObjectDetected, ApproachDataUpdated
-│       │   └── Aggregates/
-│       │       └── NearEarthObject.cs    ← Aggregate, rekonstruiert aus Events
-│       ├── Infrastructure/
-│       │   ├── NasaApiClient.cs          ← HTTP Client für NASA NeoWs API
-│       │   └── NasaApiModels.cs          ← Deserialisierungsmodelle
+│   ├── EventHorizon.Domain/               ← Kern, keine Abhängigkeiten nach außen
+│   │   ├── Events/
+│   │   │   └── NeoEvents.cs               ← NearEarthObjectDetected, ApproachDataUpdated
+│   │   ├── Aggregates/
+│   │   │   └── NearEarthObject.cs         ← Aggregate, rekonstruiert aus Events
+│   │   ├── ReadModels/
+│   │   │   └── AsteroidSummary.cs         ← Read Model für Abfragen
+│   │   └── Projections/
+│   │       └── AsteroidSummaryProjection.cs ← Baut Read Model aus Events
+│   │
+│   ├── EventHorizon.Application/          ← CQRS, MediatR Queries & Handler
+│   │   ├── Asteroids/
+│   │   │   ├── Queries/                   ← GetAllAsteroidSummariesQuery, GetHazardousAsteroidsQuery
+│   │   │   └── Handlers/                  ← Handler für jede Query
+│   │   └── Interfaces/
+│   │       └── IAsteroidRepository.cs     ← Port zur Infrastruktur
+│   │
+│   ├── EventHorizon.Infrastructure/       ← Konkrete Implementierungen
+│   │   ├── Nasa/
+│   │   │   ├── NasaApiClient.cs           ← HTTP Client für NASA NeoWs API
+│   │   │   └── NasaApiModels.cs           ← Deserialisierungsmodelle
+│   │   └── Persistence/
+│   │       └── AsteroidRepository.cs      ← Marten-Implementierung von IAsteroidRepository
+│   │
+│   └── EventHorizon.Api/                  ← Einstiegspunkt
 │       ├── BackgroundServices/
-│       │   └── NeoWsPollingService.cs    ← Pollt NASA API beim Start
+│       │   └── NeoWsPollingService.cs     ← Pollt NASA API beim Start
 │       └── Program.cs
+│
 ├── docker-compose.yml
 └── README.md
 ```
@@ -153,7 +194,7 @@ Der aktuelle Zustand ist **immer aus der Geschichte berechenbar** – man kann z
 ## 🛣️ Roadmap
 
 - [x] **Stufe 1** – Marten Event Store mit NASA NeoWs API
-- [ ] **Stufe 2** – Clean Architecture + CQRS mit MediatR + Read Model Projektionen
+- [x] **Stufe 2** – Clean Architecture + CQRS mit MediatR + Read Model Projektionen
 - [ ] **Stufe 3** – Observability mit Grafana + Loki + Prometheus
 
 ---
@@ -164,13 +205,9 @@ Die App verwendet standardmäßig den kostenlosen `DEMO_KEY` (30 Requests/Stunde
 
 Für mehr Requests: Kostenloser API Key unter [api.nasa.gov](https://api.nasa.gov/)
 
-In `appsettings.Development.json` eintragen:
-```json
-{
-  "Nasa": {
-    "ApiKey": "DEIN_KEY_HIER"
-  }
-}
+Per User Secrets eintragen (empfohlen):
+```bash
+dotnet user-secrets set "Nasa:ApiKey" "DEIN_KEY_HIER"
 ```
 
 ---

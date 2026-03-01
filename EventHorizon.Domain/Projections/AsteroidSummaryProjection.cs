@@ -1,5 +1,5 @@
-﻿using EventHorizon.Api.Domain.Events;
-using EventHorizon.Api.Domain.ReadModels;
+﻿using EventHorizon.Domain.Events;
+using EventHorizon.Domain.ReadModels;
 using Marten.Events.Aggregation;
 
 namespace EventHorizon.Api.Domain.Projections;

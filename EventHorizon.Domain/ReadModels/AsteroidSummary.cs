@@ -1,4 +1,4 @@
-﻿namespace EventHorizon.Api.Domain.ReadModels;
+﻿namespace EventHorizon.Domain.ReadModels;
 
 public class AsteroidSummary
 {

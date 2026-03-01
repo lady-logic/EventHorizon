@@ -15,8 +15,12 @@
   <ItemGroup>
     <PackageReference Include="Marten" Version="8.22.2" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.11" />
-    <PackageReference Include="Npgsql" Version="10.0.1" />
     <PackageReference Include="Scalar.AspNetCore" Version="2.12.50" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\EventHorizon.Domain\EventHorizon.Domain.csproj" />
+    <ProjectReference Include="..\EventHorizon.Infrastructure\EventHorizon.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
