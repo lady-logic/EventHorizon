@@ -1,4 +1,4 @@
-﻿namespace EventHorizon.Domain.Events
+﻿namespace EventHorizon.Api.Domain.Events
 {
     public record NearEarthObjectDetected(
     string NasaId,

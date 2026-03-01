@@ -1,4 +1,4 @@
-﻿using EventHorizon.Domain.Events;
+﻿using EventHorizon.Api.Domain.Events;
 
 namespace EventHorizon.Domain.Aggregates
 {

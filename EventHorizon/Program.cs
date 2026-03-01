@@ -1,7 +1,10 @@
+using EventHorizon.Api.Domain.Projections;
+using EventHorizon.Api.Domain.ReadModels;
 using EventHorizon.BackgroundServices;
 using EventHorizon.Infrastructure;
 using JasperFx.Events;
 using JasperFx.Events.Daemon;
+using JasperFx.Events.Projections;
 using Marten;
 using Scalar.AspNetCore;
 
@@ -14,6 +17,7 @@ builder.Services.AddMarten(opts =>
     opts.Connection(builder.Configuration.GetConnectionString("Postgres")!);
     opts.DatabaseSchemaName = "eventhorizon";
     opts.Events.StreamIdentity = StreamIdentity.AsString;
+    opts.Projections.Add<AsteroidSummaryProjection>(ProjectionLifecycle.Inline);
 }).AddAsyncDaemon(DaemonMode.HotCold) 
   .UseLightweightSessions();
 
@@ -43,6 +47,20 @@ app.MapGet("/asteroids", async (IQuerySession session) =>
     });
 
     return Results.Ok(result);
+});
+app.MapGet("/asteroids/summaries", async (IQuerySession session) =>
+{
+    var summaries = await session.Query<AsteroidSummary>()
+        .ToListAsync();
+    return Results.Ok(summaries);
+});
+
+app.MapGet("/asteroids/hazardous", async (IQuerySession session) =>
+{
+    var hazardous = await session.Query<AsteroidSummary>()
+        .Where(a => a.IsPotentiallyHazardous)
+        .ToListAsync();
+    return Results.Ok(hazardous);
 });
 
 app.Run();

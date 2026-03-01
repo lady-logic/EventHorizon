@@ -1,4 +1,4 @@
-﻿using EventHorizon.Domain.Events;
+﻿using EventHorizon.Api.Domain.Events;
 using EventHorizon.Infrastructure;
 using Marten;
 using System.Globalization;
@@ -20,7 +20,22 @@ namespace EventHorizon.BackgroundServices
         {
             _logger.LogInformation("EventHorizon is watching the skies...");
 
-            await PollNasaApiAsync();
+            try
+            {
+                await PollNasaApiAsync();
+            }
+            catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+            {
+                _logger.LogWarning("NASA API rate limit reached – will try again next startup");
+            }
+            catch (HttpRequestException ex)
+            {
+                _logger.LogError(ex, "NASA API unreachable – check your connection");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error while polling NASA API");
+            }
         }
 
         private async Task PollNasaApiAsync()
@@ -46,7 +61,17 @@ namespace EventHorizon.BackgroundServices
             {
                 foreach (var neo in objects)
                 {
-                    _logger.LogInformation("Processing {Name}", neo.Name);
+                    // Prüfen ob dieser Asteroid bereits einen Stream hat
+                    var existingStream = await session.Events
+                        .FetchStreamStateAsync(neo.Id);
+
+                    if (existingStream is not null)
+                    {
+                        _logger.LogInformation("⏭️ Skipping {Name} – already known", neo.Name);
+                        continue;
+                    }
+
+                    _logger.LogInformation("🪨 Processing {Name}", neo.Name);
 
                     session.Events.Append(
                         neo.Id,
