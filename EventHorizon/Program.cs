@@ -67,4 +67,17 @@ app.MapGet("/asteroids/hazardous", async (IMediator mediator) =>
     return Results.Ok(result);
 });
 
+app.MapGet("/asteroids/{nasaId}/history", async (
+    string nasaId,
+    DateTimeOffset at,
+    IMediator mediator) =>
+{
+    var result = await mediator.Send(
+        new GetAsteroidAtPointInTimeQuery(nasaId, at));
+
+    return result is null
+        ? Results.NotFound($"No data found for asteroid {nasaId} at {at}")
+        : Results.Ok(result);
+});
+
 app.Run();
