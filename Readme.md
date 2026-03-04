@@ -16,6 +16,8 @@ Dieses Projekt zeigt in der Praxis:
 - **Marten** als Event Store auf Basis von PostgreSQL
 - **Aggregates** – wie Domänenobjekte aus Events rekonstruiert werden
 - **Read Model Projektionen** – automatisch berechnete Lesemodelle aus Events
+- **MultiStreamProjection** – Aggregation über alle Event Streams hinweg
+- **Time Travel** – Zustand eines Aggregats zu einem beliebigen Zeitpunkt rekonstruieren
 - **Clean Architecture** – saubere Schichtentrennung mit Abhängigkeitsregel
 - **CQRS mit MediatR** – Commands und Queries vollständig entkoppelt
 - **Background Services** in ASP.NET Core
@@ -40,13 +42,17 @@ graph TB
         AGG[NearEarthObject\nAggregate]
         E1[NearEarthObjectDetected]
         E2[ApproachDataUpdated]
-        PROJ[AsteroidSummaryProjection]
-        RM[AsteroidSummary\nRead Model]
+        PROJ1[AsteroidSummaryProjection\nSingleStream / Inline]
+        PROJ2[DailyThreatReportProjection\nMultiStream / Async]
+        RM1[AsteroidSummary\nRead Model]
+        RM2[DailyThreatReport\nRead Model]
     end
 
     MS --> AGG
-    MS --> PROJ
-    PROJ --> RM
+    MS --> PROJ1
+    MS --> PROJ2
+    PROJ1 --> RM1
+    PROJ2 --> RM2
 ```
 
 ```mermaid
@@ -132,6 +138,8 @@ Beim Start pollt die App automatisch die NASA NeoWs API und speichert alle Aster
 | GET | `/asteroids` | Alle rohen Events im Event Store |
 | GET | `/asteroids/summaries` | Read Model – alle bekannten Asteroiden |
 | GET | `/asteroids/hazardous` | Read Model – nur potenziell gefährliche Asteroiden |
+| GET | `/asteroids/{nasaId}/history?at={timestamp}` | Time Travel – Asteroid-Zustand zu einem Zeitpunkt |
+| GET | `/threats/daily?date={date}` | DailyThreatReport – Tagesübersicht aller Bedrohungen |
 
 ---
 
@@ -146,13 +154,18 @@ EventHorizon/
 │   │   ├── Aggregates/
 │   │   │   └── NearEarthObject.cs         ← Aggregate, rekonstruiert aus Events
 │   │   ├── ReadModels/
-│   │   │   └── AsteroidSummary.cs         ← Read Model für Abfragen
+│   │   │   ├── AsteroidSummary.cs         ← Read Model für Einzelabfragen
+│   │   │   └── DailyThreatReport.cs       ← Read Model für Tagesberichte
 │   │   └── Projections/
-│   │       └── AsteroidSummaryProjection.cs ← Baut Read Model aus Events
+│   │       ├── AsteroidSummaryProjection.cs     ← SingleStream, Inline
+│   │       └── DailyThreatReportProjection.cs   ← MultiStream, Async
 │   │
 │   ├── EventHorizon.Application/          ← CQRS, MediatR Queries & Handler
 │   │   ├── Asteroids/
-│   │   │   ├── Queries/                   ← GetAllAsteroidSummariesQuery, GetHazardousAsteroidsQuery
+│   │   │   ├── Queries/                   ← GetAllAsteroidSummariesQuery,
+│   │   │   │                                 GetHazardousAsteroidsQuery,
+│   │   │   │                                 GetAsteroidAtPointInTimeQuery,
+│   │   │   │                                 GetDailyThreatReportQuery
 │   │   │   └── Handlers/                  ← Handler für jede Query
 │   │   └── Interfaces/
 │   │       └── IAsteroidRepository.cs     ← Port zur Infrastruktur
@@ -189,12 +202,40 @@ Stream "2003 DZ15" (NASA ID: 3150194):
 
 Der aktuelle Zustand ist **immer aus der Geschichte berechenbar** – man kann zu jedem Zeitpunkt zurückspulen und fragen: *"Was wussten wir an Tag X über diesen Asteroiden?"*
 
+### ⏱️ Time Travel
+
+Marten kann jeden Asteroid-Zustand zu einem beliebigen Zeitpunkt rekonstruieren:
+
+```
+GET /asteroids/3150194/history?at=2026-03-01T00:00:00Z
+→ Zustand von (2003 DZ15) wie er am 01.03.2026 war
+
+GET /asteroids/3150194/history?at=2026-01-01T00:00:00Z
+→ 404 Not Found – Asteroid war zu diesem Zeitpunkt noch nicht entdeckt
+```
+
+### 📊 DailyThreatReport
+
+Eine `MultiStreamProjection` aggregiert täglich alle Asteroid-Streams zu einem Tagesbericht:
+
+```json
+{
+  "date": "2026-03-04",
+  "totalAsteroidsDetected": 110,
+  "hazardousCount": 8,
+  "closestApproachKm": 1476968.58,
+  "closestAsteroidName": "54604134",
+  "hazardousAsteroidNames": ["480858 (2001 PT9)", "(2022 YU4)", "..."]
+}
+```
+
 ---
 
 ## 🛣️ Roadmap
 
 - [x] **Stufe 1** – Marten Event Store mit NASA NeoWs API
 - [x] **Stufe 2** – Clean Architecture + CQRS mit MediatR + Read Model Projektionen
+- [x] **Stufe 2+** – Time Travel + MultiStreamProjection (DailyThreatReport)
 - [ ] **Stufe 3** – Observability mit Grafana + Loki + Prometheus
 
 ---
