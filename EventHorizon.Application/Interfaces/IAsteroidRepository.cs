@@ -8,4 +8,5 @@ public interface IAsteroidRepository
     Task<IReadOnlyList<AsteroidSummary>> GetAllAsync(CancellationToken cancellationToken);
     Task<IReadOnlyList<AsteroidSummary>> GetHazardousAsync(CancellationToken cancellationToken);
     Task<NearEarthObject?> GetAtPointInTimeAsync(string nasaId, DateTimeOffset at, CancellationToken cancellationToken);
+    Task<DailyThreatReport?> GetDailyThreatReportAsync(DateOnly date, CancellationToken cancellationToken);
 }

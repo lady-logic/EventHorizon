@@ -34,4 +34,10 @@ public class AsteroidRepository : IAsteroidRepository
             timestamp: at.UtcDateTime,
             token: cancellationToken);
     }
+
+    public async Task<DailyThreatReport?> GetDailyThreatReportAsync(DateOnly date, CancellationToken cancellationToken)
+    {
+        var id = date.ToString("yyyy-MM-dd");
+        return await _session.LoadAsync<DailyThreatReport>(id, cancellationToken);
+    }
 }

@@ -1,6 +1,8 @@
 ﻿using EventHorizon.Api.Domain.Projections;
 using EventHorizon.Application.Asteroids.Queries;
 using EventHorizon.Application.Interfaces;
+using EventHorizon.Domain.Projections;
+using EventHorizon.Domain.ReadModels;
 using EventHorizon.Infrastructure;
 using EventHorizon.Infrastructure.Persistence;
 using JasperFx.Events;
@@ -20,6 +22,8 @@ builder.Services.AddMarten(opts =>
     opts.DatabaseSchemaName = "eventhorizon";
     opts.Events.StreamIdentity = StreamIdentity.AsString;
     opts.Projections.Add<AsteroidSummaryProjection>(ProjectionLifecycle.Inline);
+    opts.Projections.Add<DailyThreatReportProjection>(ProjectionLifecycle.Async);
+    opts.Schema.For<DailyThreatReport>();
 })
 .AddAsyncDaemon(DaemonMode.HotCold)
 .UseLightweightSessions()
@@ -77,6 +81,17 @@ app.MapGet("/asteroids/{nasaId}/history", async (
 
     return result is null
         ? Results.NotFound($"No data found for asteroid {nasaId} at {at}")
+        : Results.Ok(result);
+});
+
+app.MapGet("/threats/daily", async (
+    DateOnly date,
+    IMediator mediator) =>
+{
+    var result = await mediator.Send(new GetDailyThreatReportQuery(date));
+
+    return result is null
+        ? Results.NotFound($"No threat report for {date}")
         : Results.Ok(result);
 });
 
