@@ -57,7 +57,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: |
-          dotnet run \\
-            --project codeguardian/src/CodeGuardian.Analyzer/CodeGuardian.Analyzer/CodeGuardian.Analyzer.csproj \\
-            -- ${{ vars.SONAR_PROJECT_KEY }}
+        run: dotnet run --project codeguardian/src/CodeGuardian.Analyzer/CodeGuardian.Analyzer/CodeGuardian.Analyzer.csproj -- ${{ vars.SONAR_PROJECT_KEY }}
