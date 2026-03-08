@@ -48,7 +48,7 @@ jobs:
           dotnet-version: '9.0.x'
 
       - name: Build CodeGuardian
-        run: dotnet build codeguardian/src/CodeGuardian.Analyzer/CodeGuardian.Analyzer.csproj
+        run: dotnet build codeguardian/src/CodeGuardian.Analyzer/CodeGuardian.Analyzer/CodeGuardian.Analyzer.csproj
 
       - name: Run CodeGuardian
         env:
@@ -59,5 +59,5 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           dotnet run \\
-            --project codeguardian/src/CodeGuardian.Analyzer/CodeGuardian.Analyzer.csproj \\
+            --project codeguardian/src/CodeGuardian.Analyzer/CodeGuardian.Analyzer/CodeGuardian.Analyzer.csproj \\
             -- ${{ vars.SONAR_PROJECT_KEY }}
