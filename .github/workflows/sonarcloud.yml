@@ -23,14 +23,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
-          dotnet sonarscanner begin \\
-            /k:"lady-logic_EventHorizon" \\
-            /o:"lady-logic" \\
-            /d:sonar.host.url="https://sonarcloud.io" \\
-            /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
+          dotnet sonarscanner begin /k:"lady-logic_EventHorizon" /o:"lady-logic" /d:sonar.host.url="https://sonarcloud.io" /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
           dotnet build EventHorizon.sln
-          dotnet sonarscanner end \\
-            /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
+          dotnet sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
 
   codeguardian:
     name: 🤖 CodeGuardian AI Review
