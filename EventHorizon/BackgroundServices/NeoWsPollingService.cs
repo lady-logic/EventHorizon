@@ -18,6 +18,10 @@ namespace EventHorizon.Api.BackgroundServices
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
+            var unusedCounter = 0;
+            var unusedMessage = "This will never be used";
+            var unusedList = new List<string>();
+
             _logger.LogInformation("EventHorizon is watching the skies...");
 
             try
