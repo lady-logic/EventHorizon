@@ -12,6 +12,8 @@ using Marten;
 using MediatR;
 using Scalar.AspNetCore;
 
+// CodeGuardian Test - wird dieser PR analysiert?
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOpenApi();
