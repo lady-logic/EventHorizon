@@ -16,12 +16,26 @@ namespace EventHorizon.Api.BackgroundServices
             _logger = logger;
         }
 
-        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        private void UnusedMethod()
         {
+            var password = "stardate2026";
+
             var unusedCounter = 0;
             var unusedMessage = "This will never be used";
             var unusedList = new List<string>();
 
+            try
+            {
+                // etwas
+            }
+            catch (Exception ex)
+            {
+                // leer - SonarCloud hasst das hoffentlich
+            }
+        }
+
+        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        {
             _logger.LogInformation("EventHorizon is watching the skies...");
 
             try
